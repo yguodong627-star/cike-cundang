@@ -6,6 +6,7 @@ import { computeSaveNumbers } from '../rules/numbering.ts'
 import { textLength, validateSave } from '../rules/validate.ts'
 import { useToast } from '../components/Toast.tsx'
 import PhotoPicker, { type PickedPhoto } from '../components/PhotoPicker.tsx'
+import AudioRecorder, { type Recording } from '../components/AudioRecorder.tsx'
 
 function limitText(value: string): string {
   return [...value].slice(0, MAX_TEXT_LENGTH).join('')
@@ -14,6 +15,7 @@ function limitText(value: string): string {
 export default function SavePage() {
   const [text, setText] = useState('')
   const [photos, setPhotos] = useState<PickedPhoto[]>([])
+  const [recording, setRecording] = useState<Recording | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
   const navigate = useNavigate()
@@ -21,7 +23,15 @@ export default function SavePage() {
 
   const photosRef = useRef(photos)
   photosRef.current = photos
-  useEffect(() => () => photosRef.current.forEach((p) => URL.revokeObjectURL(p.url)), [])
+  const recordingRef = useRef(recording)
+  recordingRef.current = recording
+  useEffect(
+    () => () => {
+      photosRef.current.forEach((p) => URL.revokeObjectURL(p.url))
+      if (recordingRef.current) URL.revokeObjectURL(recordingRef.current.url)
+    },
+    [],
+  )
 
   async function handleSave() {
     const result = validateSave({ text, photoCount: photos.length, audioDurationMs: null })
@@ -66,6 +76,14 @@ export default function SavePage() {
         photos={photos}
         onChange={(next) => {
           setPhotos(next)
+          setError(null)
+        }}
+        onError={setError}
+      />
+      <AudioRecorder
+        recording={recording}
+        onChange={(next) => {
+          setRecording(next)
           setError(null)
         }}
         onError={setError}
