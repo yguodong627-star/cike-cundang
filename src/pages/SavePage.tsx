@@ -1,3 +1,66 @@
+import { useState } from 'react'
+import { useNavigate } from 'react-router'
+import { addSave, getAllSaves } from '../db/saves.ts'
+import { MAX_TEXT_LENGTH } from '../rules/constants.ts'
+import { computeSaveNumbers } from '../rules/numbering.ts'
+import { textLength, validateSave } from '../rules/validate.ts'
+import { useToast } from '../components/Toast.tsx'
+
+function limitText(value: string): string {
+  return [...value].slice(0, MAX_TEXT_LENGTH).join('')
+}
+
 export default function SavePage() {
-  return <h1 className="text-2xl font-semibold">存档</h1>
+  const [text, setText] = useState('')
+  const [error, setError] = useState<string | null>(null)
+  const [saving, setSaving] = useState(false)
+  const navigate = useNavigate()
+  const toast = useToast()
+
+  async function handleSave() {
+    const result = validateSave({ text, photoCount: 0, audioDurationMs: null })
+    if (!result.ok) {
+      setError(result.reason)
+      return
+    }
+    setSaving(true)
+    try {
+      const trimmed = text.trim()
+      const save = await addSave({ text: trimmed || null, photos: [], audio: null })
+      const number = computeSaveNumbers(await getAllSaves()).get(save.id)
+      setText('')
+      toast(`已存档 · 存档点 #${number}`)
+      navigate('/timeline')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  return (
+    <>
+      <h1 className="text-2xl font-semibold">存档</h1>
+      <textarea
+        value={text}
+        onChange={(e) => {
+          setText(limitText(e.target.value))
+          setError(null)
+        }}
+        placeholder="此刻，你在想什么？"
+        rows={5}
+        className="mt-6 w-full resize-none rounded-lg border border-black/20 bg-transparent p-3 text-base outline-none focus:border-black dark:border-white/30 dark:focus:border-white"
+      />
+      <p className="mt-1 text-right text-xs opacity-50">
+        {textLength(text)} / {MAX_TEXT_LENGTH}
+      </p>
+      {error && <p className="mt-2 text-sm">{error}</p>}
+      <button
+        type="button"
+        onClick={handleSave}
+        disabled={saving}
+        className="mt-4 w-full rounded-lg bg-black py-3 text-base font-semibold text-white disabled:opacity-50 dark:bg-white dark:text-black"
+      >
+        保存此刻
+      </button>
+    </>
+  )
 }
