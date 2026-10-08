@@ -1,5 +1,7 @@
 import { useState } from 'react'
+import { liveQuery } from 'dexie'
 import { db } from '../db/db.ts'
+import type { Media } from '../types/models.ts'
 import { clearDiagLog, readDiagLog } from './errorLog.ts'
 
 function withTimeout<T>(p: Promise<T>, ms: number): Promise<T | 'timeout'> {
@@ -73,6 +75,19 @@ async function runDiagnosis(): Promise<string> {
       }
     }
   }
+  const live = await withTimeout(
+    new Promise<Media[]>((resolve) => {
+      const sub = liveQuery(() => db.media.toArray()).subscribe((v) => {
+        resolve(v)
+        setTimeout(() => sub.unsubscribe())
+      })
+    }),
+    5000,
+  )
+  if (live === 'timeout') out.push('自动刷新读取 超时')
+  else
+    for (const m of live.filter((x) => x.kind === 'photo').slice(-2))
+      out.push(`自动刷新读取 缩略 ${m.id.slice(0, 6)} ${await readTest(m.thumbBlob)}`)
   out.push(`navigator.standalone ${(navigator as { standalone?: boolean }).standalone}`)
   out.push('— 运行记录')
   out.push(...readDiagLog())

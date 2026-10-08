@@ -1,7 +1,8 @@
 import { Dexie, type EntityTable } from 'dexie'
 import type { Media, Save, Settings } from '../types/models.ts'
 
-export const db = new Dexie('cike') as Dexie & {
+// iPhone Safari 上，Dexie 缓存里的照片 / 语音 Blob 再次读取时是空的，所以关掉缓存，每次都从仓库现读
+export const db = new Dexie('cike', { cache: 'disabled' }) as Dexie & {
   saves: EntityTable<Save, 'id'>
   media: EntityTable<Media, 'id'>
   settings: EntityTable<Settings, 'id'>
