@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { createBackupFile, saveBackupFile } from '../backup/exportBackup.ts'
+import { createBackupFile, LARGE_BACKUP_BYTES, saveBackupFile } from '../backup/exportBackup.ts'
 import { formatFileSize } from '../backup/html.ts'
 
 export interface BackupExport {
@@ -21,13 +21,20 @@ export function useBackupExport(): BackupExport {
   async function deliver(file: File): Promise<boolean> {
     const outcome = await saveBackupFile(file)
     const size = formatFileSize(file.size)
-    if (outcome === 'saved') {
+    const large = file.size > LARGE_BACKUP_BYTES ? '。备份文件已超过 100 MB，打开会比较慢' : ''
+    if (outcome === 'shared' || outcome === 'downloaded') {
       setPendingFile(null)
-      setMessage(`已备份 ${file.name}（${size}）`)
+      const check = outcome === 'shared' ? '。请确认选的是“存储到‘文件’”' : ''
+      setMessage(`已备份 ${file.name}（${size}）${check}${large}`)
       return true
     }
     setPendingFile(file)
-    setMessage(outcome === 'cancelled' ? `还没保存（${size}），可以再点下面的按钮保存` : `备份文件已生成（${size}），点下面的按钮保存`)
+    const reason = {
+      cancelled: `还没保存（${size}），可以再点下面的按钮保存`,
+      needsTap: `备份文件已生成（${size}），点下面的按钮保存`,
+      failed: `无法打开分享面板（${size}），请再点下面的按钮试一次`,
+    }[outcome]
+    setMessage(reason + large)
     return false
   }
 

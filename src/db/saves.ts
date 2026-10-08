@@ -132,10 +132,12 @@ export async function replaceAllData(saves: Save[], media: Media[]): Promise<voi
   })
 }
 
-/** 删除存档，连同它的照片和语音 */
+/** 删除存档，连同它的照片和语音（按存档里记的取件号删，见技术文档坑 14） */
 export async function deleteSave(id: string): Promise<void> {
   await db.transaction('rw', db.saves, db.media, async () => {
-    await db.media.where('saveId').equals(id).delete()
+    const save = await db.saves.get(id)
+    if (!save) return
+    await db.media.bulkDelete(save.audioId ? [...save.photoIds, save.audioId] : save.photoIds)
     await db.saves.delete(id)
   })
 }

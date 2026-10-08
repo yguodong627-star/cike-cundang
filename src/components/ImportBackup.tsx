@@ -91,7 +91,7 @@ export default function ImportBackup({ backup }: Props) {
               </button>
               <button
                 type="button"
-                disabled={busy}
+                disabled={busy || backup.busy}
                 onClick={handleConfirm}
                 className={`${BUTTON} bg-black font-semibold text-white dark:bg-white dark:text-black`}
               >
