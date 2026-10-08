@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it } from 'vitest'
 import { db } from './db.ts'
-import { addSave, deleteSave, getAllSaves, updateSave, type NewAudio, type NewPhoto } from './saves.ts'
+import { addSave, deleteSave, getAllSaves, replaceAllData, updateSave, type NewAudio, type NewPhoto } from './saves.ts'
+import type { Media, Save } from '../types/models.ts'
 
 const photo = (): NewPhoto => ({
   blob: new Blob(['big'], { type: 'image/jpeg' }),
@@ -80,5 +81,35 @@ describe('仓库的增、查、改、删', () => {
     await addSave({ text: '早', photos: [], audio: null }, 1000)
     const saves = await getAllSaves()
     expect(saves.map((s) => s.text)).toEqual(['早', '晚'])
+  })
+})
+
+describe('整体替换（读取存档）', () => {
+  const backupSave: Save = { id: 'b1', createdAt: 500, updatedAt: 500, text: '备份里的', photoIds: ['bp'], audioId: null }
+  const backupMedia: Media = {
+    id: 'bp',
+    saveId: 'b1',
+    kind: 'photo',
+    mimeType: 'image/jpeg',
+    blob: new Blob(['x'], { type: 'image/jpeg' }),
+    thumbBlob: new Blob(['t'], { type: 'image/jpeg' }),
+  }
+
+  it('原有存档全部消失，只剩备份里的', async () => {
+    await addSave({ text: '导出后新增', photos: [photo()], audio: audio() })
+    await replaceAllData([backupSave], [backupMedia])
+
+    const saves = await getAllSaves()
+    expect(saves.map((s) => s.text)).toEqual(['备份里的'])
+    expect((await db.media.toArray()).map((m) => m.id)).toEqual(['bp'])
+  })
+
+  it('写入出错时整体退回，原有存档还在', async () => {
+    await addSave({ text: '原有的', photos: [], audio: null })
+    const duplicate = [backupSave, { ...backupSave }]
+    await expect(replaceAllData(duplicate, [backupMedia])).rejects.toThrow()
+
+    const saves = await getAllSaves()
+    expect(saves.map((s) => s.text)).toEqual(['原有的'])
   })
 })

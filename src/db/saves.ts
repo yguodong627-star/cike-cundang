@@ -112,6 +112,16 @@ export async function updateSave(id: string, changes: SaveChanges, now = Date.no
   })
 }
 
+/** 用备份里的数据整体替换当前存档；清空和写入在同一个事务里，中途出错会全部退回 */
+export async function replaceAllData(saves: Save[], media: Media[]): Promise<void> {
+  await db.transaction('rw', db.saves, db.media, async () => {
+    await db.saves.clear()
+    await db.media.clear()
+    await db.media.bulkAdd(media)
+    await db.saves.bulkAdd(saves)
+  })
+}
+
 /** 删除存档，连同它的照片和语音 */
 export async function deleteSave(id: string): Promise<void> {
   await db.transaction('rw', db.saves, db.media, async () => {

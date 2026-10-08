@@ -2,6 +2,7 @@ import { lazy, Suspense, useEffect, useState } from 'react'
 import { isPersisted } from '../db/persist.ts'
 import { exportBackup } from '../backup/exportBackup.ts'
 import { formatFileSize } from '../backup/html.ts'
+import ImportBackup from '../components/ImportBackup.tsx'
 
 // 用动态引入，部署版构建时整段被丢掉，不会打包进去
 const DevTools = import.meta.env.DEV ? lazy(() => import('../dev/DevTools.tsx')) : null
@@ -43,6 +44,7 @@ export default function SettingsPage() {
         {backupMessage && <p className="mt-2 text-sm">{backupMessage}</p>}
         <p className="mt-2 text-xs opacity-50">生成一个网页文件，双击就能查看全部存档，也能用来读取存档。</p>
       </section>
+      <ImportBackup onBackupFirst={handleExport} />
       <p className="mt-8 text-sm">
         持久保存：{persisted === null ? '检查中…' : persisted ? '已开启' : '未开启'}
       </p>
