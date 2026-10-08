@@ -1,10 +1,11 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router'
 import { addSave, getAllSaves } from '../db/saves.ts'
 import { MAX_TEXT_LENGTH } from '../rules/constants.ts'
 import { computeSaveNumbers } from '../rules/numbering.ts'
 import { textLength, validateSave } from '../rules/validate.ts'
 import { useToast } from '../components/Toast.tsx'
+import PhotoPicker, { type PickedPhoto } from '../components/PhotoPicker.tsx'
 
 function limitText(value: string): string {
   return [...value].slice(0, MAX_TEXT_LENGTH).join('')
@@ -12,13 +13,18 @@ function limitText(value: string): string {
 
 export default function SavePage() {
   const [text, setText] = useState('')
+  const [photos, setPhotos] = useState<PickedPhoto[]>([])
   const [error, setError] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
   const navigate = useNavigate()
   const toast = useToast()
 
+  const photosRef = useRef(photos)
+  photosRef.current = photos
+  useEffect(() => () => photosRef.current.forEach((p) => URL.revokeObjectURL(p.url)), [])
+
   async function handleSave() {
-    const result = validateSave({ text, photoCount: 0, audioDurationMs: null })
+    const result = validateSave({ text, photoCount: photos.length, audioDurationMs: null })
     if (!result.ok) {
       setError(result.reason)
       return
@@ -26,7 +32,11 @@ export default function SavePage() {
     setSaving(true)
     try {
       const trimmed = text.trim()
-      const save = await addSave({ text: trimmed || null, photos: [], audio: null })
+      const save = await addSave({
+        text: trimmed || null,
+        photos: photos.map(({ photo }) => ({ blob: photo.blob, thumbBlob: photo.thumbBlob, mimeType: photo.mimeType })),
+        audio: null,
+      })
       const number = computeSaveNumbers(await getAllSaves()).get(save.id)
       setText('')
       toast(`已存档 · 存档点 #${number}`)
@@ -52,6 +62,14 @@ export default function SavePage() {
       <p className="mt-1 text-right text-xs opacity-50">
         {textLength(text)} / {MAX_TEXT_LENGTH}
       </p>
+      <PhotoPicker
+        photos={photos}
+        onChange={(next) => {
+          setPhotos(next)
+          setError(null)
+        }}
+        onError={setError}
+      />
       {error && <p className="mt-2 text-sm">{error}</p>}
       <button
         type="button"
