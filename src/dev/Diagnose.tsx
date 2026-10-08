@@ -73,6 +73,7 @@ async function runDiagnosis(): Promise<string> {
       }
     }
   }
+  out.push(`navigator.standalone ${(navigator as { standalone?: boolean }).standalone}`)
   out.push('— 运行记录')
   out.push(...readDiagLog())
   return out.join('\n')
