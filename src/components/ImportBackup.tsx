@@ -3,10 +3,11 @@ import { db } from '../db/db.ts'
 import { replaceAllData } from '../db/saves.ts'
 import { readBackupFile } from '../backup/importBackup.ts'
 import type { Media, Save } from '../types/models.ts'
+import { BackupPending, type BackupExport } from './useBackupExport.tsx'
 
 interface Props {
-  /** “先备份当前存档”：下载当前数据的备份 */
-  onBackupFirst: () => Promise<void>
+  /** “先备份当前存档”用的备份流程，和设置页的“备份存档”共用 */
+  backup: BackupExport
 }
 
 interface Pending {
@@ -17,7 +18,7 @@ interface Pending {
 
 const BUTTON = 'w-full rounded-lg py-3 text-base disabled:opacity-50'
 
-export default function ImportBackup({ onBackupFirst }: Props) {
+export default function ImportBackup({ backup }: Props) {
   const inputRef = useRef<HTMLInputElement>(null)
   const [pending, setPending] = useState<Pending | null>(null)
   const [busy, setBusy] = useState(false)
@@ -35,15 +36,6 @@ export default function ImportBackup({ onBackupFirst }: Props) {
     }
     setMessage(null)
     setPending({ saves: result.saves, media: result.media, currentCount: await db.saves.count() })
-  }
-
-  async function handleBackupFirst() {
-    setBusy(true)
-    try {
-      await onBackupFirst()
-    } finally {
-      setBusy(false)
-    }
   }
 
   async function handleConfirm() {
@@ -87,11 +79,12 @@ export default function ImportBackup({ onBackupFirst }: Props) {
             <p className="mt-2 text-sm">
               当前的 {pending.currentCount} 条存档会被备份里的 {pending.saves.length} 条全部替换，替换后无法恢复。
             </p>
+            <BackupPending backup={backup} />
             <div className="mt-5 space-y-2">
               <button
                 type="button"
-                disabled={busy}
-                onClick={handleBackupFirst}
+                disabled={busy || backup.busy}
+                onClick={backup.start}
                 className={`${BUTTON} border border-black/20 dark:border-white/30`}
               >
                 先备份当前存档
