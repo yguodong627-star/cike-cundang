@@ -64,6 +64,7 @@ export function installDiagLog() {
   URL.createObjectURL = (obj: Blob | MediaSource) => {
     const u = create(obj)
     created.add(u)
+    if (obj instanceof Blob) logDiag(`生成网址 ${short(u)} size=${obj.size} ${obj.type}`)
     return u
   }
   URL.revokeObjectURL = (u: string) => {
