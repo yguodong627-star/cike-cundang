@@ -95,14 +95,17 @@ export default function SavePage() {
         onError={setError}
       />
       {error && <p className="mt-2 text-sm">{error}</p>}
-      <button
-        type="button"
-        onClick={handleSave}
-        disabled={saving}
-        className="mt-4 w-full rounded-lg bg-black py-3 text-base font-semibold text-white disabled:opacity-50 dark:bg-white dark:text-black"
-      >
-        保存此刻
-      </button>
+      {/* 吸在底部导航上方：内容再多也不用滚动就能点到 */}
+      <div className="sticky bottom-[calc(env(safe-area-inset-bottom)+2.75rem)] -mx-4 mt-2 bg-white px-4 py-2 dark:bg-black">
+        <button
+          type="button"
+          onClick={handleSave}
+          disabled={saving}
+          className="w-full rounded-lg bg-black py-3 text-base font-semibold text-white disabled:opacity-50 dark:bg-white dark:text-black"
+        >
+          保存此刻
+        </button>
+      </div>
     </>
   )
 }
