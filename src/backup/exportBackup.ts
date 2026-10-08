@@ -1,4 +1,5 @@
 import { db } from '../db/db.ts'
+import { setLastBackupAt } from '../db/settings.ts'
 import { buildBackup } from './format.ts'
 import { backupFileName, renderBackupHtml } from './html.ts'
 
@@ -24,5 +25,6 @@ export async function exportBackup(now = Date.now()): Promise<ExportResult> {
   // Safari 需要一点时间才开始读文件，马上回收会下载失败
   window.setTimeout(() => URL.revokeObjectURL(url), 60 * 1000)
 
+  await setLastBackupAt(now)
   return { fileName, sizeBytes: file.size }
 }

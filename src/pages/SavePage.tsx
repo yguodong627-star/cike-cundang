@@ -2,11 +2,13 @@ import { useNavigate } from 'react-router'
 import { addSave, getAllSaves } from '../db/saves.ts'
 import { computeSaveNumbers } from '../rules/numbering.ts'
 import { useToast } from '../components/Toast.tsx'
+import { useBackupReminder } from '../components/BackupReminder.tsx'
 import SaveForm, { type SaveFormValue } from '../components/SaveForm.tsx'
 
 export default function SavePage() {
   const navigate = useNavigate()
   const toast = useToast()
+  const checkBackupReminder = useBackupReminder()
 
   async function handleSave({ text, photos, recording }: SaveFormValue) {
     const save = await addSave({
@@ -21,6 +23,7 @@ export default function SavePage() {
     const number = computeSaveNumbers(await getAllSaves()).get(save.id)
     toast(`已存档 · 存档点 #${number}`)
     navigate('/timeline')
+    void checkBackupReminder()
   }
 
   return (

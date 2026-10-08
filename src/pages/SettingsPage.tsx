@@ -1,4 +1,7 @@
 import { lazy, Suspense, useEffect, useState } from 'react'
+import { useLiveQuery } from 'dexie-react-hooks'
+import { db } from '../db/db.ts'
+import { toLocalDateKey } from '../rules/date.ts'
 import { isPersisted } from '../db/persist.ts'
 import { exportBackup } from '../backup/exportBackup.ts'
 import { formatFileSize } from '../backup/html.ts'
@@ -11,6 +14,8 @@ export default function SettingsPage() {
   const [persisted, setPersisted] = useState<boolean | null>(null)
   const [exporting, setExporting] = useState(false)
   const [backupMessage, setBackupMessage] = useState<string | null>(null)
+  // 还在读：undefined；没有这一行：null
+  const settings = useLiveQuery(async () => (await db.settings.get('app')) ?? null)
 
   useEffect(() => {
     isPersisted().then(setPersisted)
@@ -41,7 +46,10 @@ export default function SettingsPage() {
         >
           备份存档
         </button>
-        {backupMessage && <p className="mt-2 text-sm">{backupMessage}</p>}
+        <p className="mt-2 text-sm">
+          上次备份：{settings === undefined ? '…' : settings?.lastBackupAt ? toLocalDateKey(settings.lastBackupAt) : '还没有备份过'}
+        </p>
+        {backupMessage && <p className="mt-1 text-sm">{backupMessage}</p>}
         <p className="mt-2 text-xs opacity-50">生成一个网页文件，双击就能查看全部存档，也能用来读取存档。</p>
       </section>
       <ImportBackup onBackupFirst={handleExport} />
