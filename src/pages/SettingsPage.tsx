@@ -8,6 +8,7 @@ import { BackupPending, useBackupExport } from '../components/useBackupExport.ts
 
 // 用动态引入，部署版构建时整段被丢掉，不会打包进去
 const DevTools = import.meta.env.DEV ? lazy(() => import('../dev/DevTools.tsx')) : null
+const Diagnose = lazy(() => import('../dev/Diagnose.tsx'))
 
 export default function SettingsPage() {
   const [persisted, setPersisted] = useState<boolean | null>(null)
@@ -46,6 +47,9 @@ export default function SettingsPage() {
           <DevTools />
         </Suspense>
       )}
+      <Suspense fallback={null}>
+        <Diagnose />
+      </Suspense>
     </>
   )
 }
