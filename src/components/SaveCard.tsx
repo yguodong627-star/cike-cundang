@@ -3,6 +3,8 @@ import { useLiveQuery } from 'dexie-react-hooks'
 import PhotoViewer from './PhotoViewer.tsx'
 import { useNearViewport } from './useNearViewport.ts'
 import { db } from '../db/db.ts'
+import { deleteSave } from '../db/saves.ts'
+import { isLocked } from '../rules/lock.ts'
 import { useObjectUrl } from '../media/useObjectUrl.ts'
 import { formatTime } from '../rules/timeline.ts'
 import type { Media, Save } from '../types/models.ts'
@@ -26,9 +28,10 @@ function AudioPlayer({ media }: { media: Media }) {
 interface Props {
   save: Save
   number: number
+  now: number
 }
 
-export default function SaveCard({ save, number }: Props) {
+export default function SaveCard({ save, number, now }: Props) {
   const [viewerIndex, setViewerIndex] = useState<number | null>(null)
   const ref = useRef<HTMLElement>(null)
   // 离屏幕远的卡片不读照片和语音，避免存档多了以后手机内存吃紧（技术文档坑 10）
@@ -40,6 +43,13 @@ export default function SaveCard({ save, number }: Props) {
   const byId = new Map((media ?? []).map((m) => [m.id, m]))
   const photos = save.photoIds.map((id) => byId.get(id)).filter((m): m is Media => !!m)
   const audio = save.audioId ? byId.get(save.audioId) : undefined
+  const locked = isLocked(save.createdAt, now)
+
+  async function handleDiscard() {
+    if (!window.confirm(`放弃存档点 #${number}？\n放弃后无法恢复，后面的存档编号会往前补位。`)) return
+    if (isLocked(save.createdAt, Date.now())) return
+    await deleteSave(save.id)
+  }
 
   return (
     <article ref={ref} className="rounded-xl border border-black/15 p-4 dark:border-white/20">
@@ -61,6 +71,15 @@ export default function SaveCard({ save, number }: Props) {
         </div>
       )}
       {save.audioId && <div className="mt-3 h-12">{audio && <AudioPlayer media={audio} />}</div>}
+      <footer className="mt-3 flex justify-end text-sm">
+        {locked ? (
+          <span className="opacity-40">存档已封存</span>
+        ) : (
+          <button type="button" onClick={handleDiscard} className="opacity-60">
+            放弃这个存档
+          </button>
+        )}
+      </footer>
       {viewerIndex !== null && (
         <PhotoViewer photos={photos} startIndex={viewerIndex} onClose={() => setViewerIndex(null)} />
       )}

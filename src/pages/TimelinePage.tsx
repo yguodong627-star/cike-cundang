@@ -3,9 +3,11 @@ import { getAllSaves } from '../db/saves.ts'
 import { computeSaveNumbers } from '../rules/numbering.ts'
 import { formatDateHeading, groupSavesByDay } from '../rules/timeline.ts'
 import SaveCard from '../components/SaveCard.tsx'
+import { useNow } from '../components/useNow.ts'
 
 export default function TimelinePage() {
   const saves = useLiveQuery(getAllSaves)
+  const now = useNow()
 
   if (!saves) return null
 
@@ -23,7 +25,7 @@ export default function TimelinePage() {
             <h2 className="mb-2 text-sm opacity-60">{formatDateHeading(group.dateKey)}</h2>
             <div className="space-y-3">
               {group.saves.map((save) => (
-                <SaveCard key={save.id} save={save} number={numbers.get(save.id)!} />
+                <SaveCard key={save.id} save={save} number={numbers.get(save.id)!} now={now} />
               ))}
             </div>
           </section>
