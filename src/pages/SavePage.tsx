@@ -34,7 +34,11 @@ export default function SavePage() {
   )
 
   async function handleSave() {
-    const result = validateSave({ text, photoCount: photos.length, audioDurationMs: null })
+    const result = validateSave({
+      text,
+      photoCount: photos.length,
+      audioDurationMs: recording ? recording.durationMs : null,
+    })
     if (!result.ok) {
       setError(result.reason)
       return
@@ -45,7 +49,9 @@ export default function SavePage() {
       const save = await addSave({
         text: trimmed || null,
         photos: photos.map(({ photo }) => ({ blob: photo.blob, thumbBlob: photo.thumbBlob, mimeType: photo.mimeType })),
-        audio: null,
+        audio: recording
+          ? { blob: recording.blob, mimeType: recording.mimeType, durationMs: recording.durationMs }
+          : null,
       })
       const number = computeSaveNumbers(await getAllSaves()).get(save.id)
       setText('')

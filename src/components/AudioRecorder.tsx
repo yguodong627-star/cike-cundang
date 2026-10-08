@@ -99,9 +99,21 @@ export default function AudioRecorder({ recording, onChange, onError }: Props) {
     if (recorder && recorder.state !== 'inactive') recorder.stop()
   }
 
+  function remove() {
+    if (recording) URL.revokeObjectURL(recording.url)
+    onChange(null)
+  }
+
   return (
     <div className="mt-4">
-      {recording && !recordingNow && <audio src={recording.url} controls className="mb-3 w-full" />}
+      {recording && !recordingNow && (
+        <div className="mb-3 flex items-center gap-2">
+          <audio src={recording.url} controls className="min-w-0 flex-1" />
+          <button type="button" onClick={remove} className="shrink-0 px-2 text-sm opacity-60">
+            删除语音
+          </button>
+        </div>
+      )}
       <button
         type="button"
         onClick={recordingNow ? stop : start}
