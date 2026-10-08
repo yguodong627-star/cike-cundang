@@ -1,9 +1,29 @@
 // 离线缓存：打开过一次后，没网也能打开（技术文档 2.7）。只缓存网页本身的文件，存档数据在 IndexedDB 里，不经过这里。
-const CACHE = 'cike-v1'
+const CACHE = 'cike-v2'
 const NETWORK_TIMEOUT_MS = 3000
 
+function assetPaths(html) {
+  return new Set(html.match(/\/assets\/[^"'\s)]+/g) ?? [])
+}
+
+// 网页用到的脚本、样式要一次存齐：只靠打开时顺手存，iPhone 上常常存不全，没网时就是白屏
+async function cacheAssets(cache, html) {
+  for (const path of assetPaths(html)) {
+    if (!(await cache.match(path))) await cache.add(path)
+  }
+}
+
+async function precache() {
+  const cache = await caches.open(CACHE)
+  const response = await fetch('/', { cache: 'no-store' })
+  if (!response.ok) throw new Error(`首页下载失败：${response.status}`)
+  await cacheAssets(cache, await response.clone().text())
+  await cache.put('/', response)
+  await cache.add('/manifest.webmanifest')
+}
+
 self.addEventListener('install', (event) => {
-  event.waitUntil(caches.open(CACHE).then((cache) => cache.addAll(['/', '/manifest.webmanifest'])))
+  event.waitUntil(precache())
   self.skipWaiting()
 })
 
@@ -18,7 +38,7 @@ self.addEventListener('activate', (event) => {
 
 // 新版网页不再引用的旧脚本、样式从缓存里删掉，免得越积越多
 async function pruneAssets(cache, html) {
-  const used = new Set(html.match(/\/assets\/[^"'\s)]+/g) ?? [])
+  const used = assetPaths(html)
   if (used.size === 0) return
   for (const request of await cache.keys()) {
     const path = new URL(request.url).pathname
@@ -31,8 +51,17 @@ async function handleNavigate(request) {
   const cache = await caches.open(CACHE)
   const fromNetwork = fetch(request).then((response) => {
     if (response.ok) {
-      cache.put('/', response.clone())
-      response.clone().text().then((html) => pruneAssets(cache, html))
+      const copy = response.clone()
+      copy
+        .clone()
+        .text()
+        .then(async (html) => {
+          // 先存齐新脚本再换页面，缓存里的页面和脚本才对得上
+          await cacheAssets(cache, html)
+          await cache.put('/', copy)
+          await pruneAssets(cache, html)
+        })
+        .catch(() => {})
     }
     return response
   })
