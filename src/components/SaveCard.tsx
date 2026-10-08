@@ -3,8 +3,7 @@ import { useLiveQuery } from 'dexie-react-hooks'
 import PhotoViewer from './PhotoViewer.tsx'
 import EditSheet from './EditSheet.tsx'
 import { useNearViewport } from './useNearViewport.ts'
-import { db } from '../db/db.ts'
-import { deleteSave } from '../db/saves.ts'
+import { deleteSave, getMediaOfSave } from '../db/saves.ts'
 import { isLocked } from '../rules/lock.ts'
 import { useObjectUrl } from '../media/useObjectUrl.ts'
 import { formatTime } from '../rules/timeline.ts'
@@ -39,7 +38,7 @@ export default function SaveCard({ save, number, now }: Props) {
   // 离屏幕远的卡片不读照片和语音，避免存档多了以后手机内存吃紧（技术文档坑 10）
   const active = useNearViewport(ref) || viewerIndex !== null
   const media = useLiveQuery(
-    () => (active ? db.media.where('saveId').equals(save.id).toArray() : []),
+    () => (active ? getMediaOfSave(save) : []),
     [active, save.id, save.updatedAt],
   )
   const byId = new Map((media ?? []).map((m) => [m.id, m]))

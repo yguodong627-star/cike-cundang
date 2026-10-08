@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { liveQuery } from 'dexie'
 import { db } from '../db/db.ts'
+import { getMediaOfSave } from '../db/saves.ts'
 import type { Media } from '../types/models.ts'
 import { clearDiagLog, readDiagLog } from './errorLog.ts'
 
@@ -88,6 +89,13 @@ async function runDiagnosis(): Promise<string> {
   else
     for (const m of live.filter((x) => x.kind === 'photo').slice(-2))
       out.push(`自动刷新读取 缩略 ${m.id.slice(0, 6)} ${await readTest(m.thumbBlob)}`)
+  const latest = await db.saves.orderBy('createdAt').last()
+  if (latest?.photoIds.length) {
+    const viaIndex = (await db.media.where('saveId').equals(latest.id).toArray()).find((m) => m.kind === 'photo')
+    out.push(`按存档索引读取 缩略 ${await readTest(viaIndex?.thumbBlob)}`)
+    const [viaKey] = await getMediaOfSave({ photoIds: latest.photoIds.slice(0, 1), audioId: null })
+    out.push(`按取件号读取 缩略 ${await readTest(viaKey?.thumbBlob)}`)
+  }
   out.push(`navigator.standalone ${(navigator as { standalone?: boolean }).standalone}`)
   out.push('— 运行记录')
   out.push(...readDiagLog())

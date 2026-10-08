@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it } from 'vitest'
 import { db } from './db.ts'
-import { addSave, deleteSave, getAllSaves, replaceAllData, updateSave, type NewAudio, type NewPhoto } from './saves.ts'
+import { addSave, deleteSave, getAllSaves, getMediaOfSave, replaceAllData, updateSave, type NewAudio, type NewPhoto } from './saves.ts'
 import type { Media, Save } from '../types/models.ts'
 
 const photo = (): NewPhoto => ({
@@ -34,6 +34,14 @@ describe('仓库的增、查、改、删', () => {
     const stored = await db.media.get(save.photoIds[0])
     expect(stored?.kind).toBe('photo')
     expect(stored?.thumbBlob).toBeDefined()
+  })
+
+  it('getMediaOfSave 按取件号取出这条存档的照片和语音，不混入别的存档', async () => {
+    const save = await addSave({ text: null, photos: [photo(), photo()], audio: audio() })
+    await addSave({ text: '别的', photos: [photo()], audio: null })
+    const media = await getMediaOfSave(save)
+    expect(media.map((m) => m.id)).toEqual([...save.photoIds, save.audioId])
+    expect(await getMediaOfSave({ photoIds: ['不存在'], audioId: null })).toEqual([])
   })
 
   it('删除存档后，saves 和 media 表里都找不到它和它的照片、语音', async () => {

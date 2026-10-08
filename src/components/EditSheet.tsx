@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react'
-import { db } from '../db/db.ts'
-import { updateSave } from '../db/saves.ts'
+import { getMediaOfSave, updateSave } from '../db/saves.ts'
 import { buildSaveChanges } from '../rules/edit.ts'
 import { isLocked } from '../rules/lock.ts'
 import { storedBlobUrl } from '../media/useObjectUrl.ts'
@@ -14,7 +13,7 @@ interface Props {
 }
 
 async function loadInitial(save: Save): Promise<SaveFormValue> {
-  const media = await db.media.where('saveId').equals(save.id).toArray()
+  const media = await getMediaOfSave(save)
   const byId = new Map(media.map((m) => [m.id, m]))
   const photos = []
   for (const id of save.photoIds) {

@@ -75,6 +75,16 @@ export async function getAllSaves(): Promise<Save[]> {
   return db.saves.orderBy('createdAt').toArray()
 }
 
+/**
+ * 按取件号取一条存档的照片和语音。
+ * iPhone Safari 上，通过 saveId 索引查出来的 Blob 读取时报 NotFoundError，必须按主键取。
+ */
+export async function getMediaOfSave(save: Pick<Save, 'photoIds' | 'audioId'>): Promise<Media[]> {
+  const ids = save.audioId ? [...save.photoIds, save.audioId] : save.photoIds
+  const found = await db.media.bulkGet(ids)
+  return found.filter((m): m is Media => !!m)
+}
+
 export async function updateSave(id: string, changes: SaveChanges, now = Date.now()): Promise<Save> {
   return db.transaction('rw', db.saves, db.media, async () => {
     const save = await db.saves.get(id)
