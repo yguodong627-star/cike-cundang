@@ -6,6 +6,11 @@
   background-color: #fff;
 }
 
+/* 浏览器默认的焦点框是蓝色，改成跟随文字颜色，保持全站黑白 */
+:focus-visible {
+  outline-color: currentColor;
+}
+
 @media (prefers-color-scheme: dark) {
   :root {
     color: #fff;
