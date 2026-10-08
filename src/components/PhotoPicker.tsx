@@ -4,8 +4,11 @@ import { MAX_PHOTOS } from '../rules/constants.ts'
 
 export interface PickedPhoto {
   key: string
-  photo: CompressedPhoto
   url: string
+  /** 新选的照片 */
+  photo?: CompressedPhoto
+  /** 编辑时，存档里原有的照片 */
+  mediaId?: string
 }
 
 interface Props {

@@ -7,6 +7,8 @@ export interface Recording {
   mimeType: string
   durationMs: number
   url: string
+  /** 编辑时，存档里原有的语音 */
+  mediaId?: string
 }
 
 interface Props {

@@ -1,111 +1,37 @@
-import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router'
 import { addSave, getAllSaves } from '../db/saves.ts'
-import { MAX_TEXT_LENGTH } from '../rules/constants.ts'
 import { computeSaveNumbers } from '../rules/numbering.ts'
-import { textLength, validateSave } from '../rules/validate.ts'
 import { useToast } from '../components/Toast.tsx'
-import PhotoPicker, { type PickedPhoto } from '../components/PhotoPicker.tsx'
-import AudioRecorder, { type Recording } from '../components/AudioRecorder.tsx'
-
-function limitText(value: string): string {
-  return [...value].slice(0, MAX_TEXT_LENGTH).join('')
-}
+import SaveForm, { type SaveFormValue } from '../components/SaveForm.tsx'
 
 export default function SavePage() {
-  const [text, setText] = useState('')
-  const [photos, setPhotos] = useState<PickedPhoto[]>([])
-  const [recording, setRecording] = useState<Recording | null>(null)
-  const [error, setError] = useState<string | null>(null)
-  const [saving, setSaving] = useState(false)
   const navigate = useNavigate()
   const toast = useToast()
 
-  const photosRef = useRef(photos)
-  photosRef.current = photos
-  const recordingRef = useRef(recording)
-  recordingRef.current = recording
-  useEffect(
-    () => () => {
-      photosRef.current.forEach((p) => URL.revokeObjectURL(p.url))
-      if (recordingRef.current) URL.revokeObjectURL(recordingRef.current.url)
-    },
-    [],
-  )
-
-  async function handleSave() {
-    const result = validateSave({
-      text,
-      photoCount: photos.length,
-      audioDurationMs: recording ? recording.durationMs : null,
+  async function handleSave({ text, photos, recording }: SaveFormValue) {
+    const save = await addSave({
+      text: text.trim() || null,
+      photos: photos.flatMap(({ photo }) =>
+        photo ? [{ blob: photo.blob, thumbBlob: photo.thumbBlob, mimeType: photo.mimeType }] : [],
+      ),
+      audio: recording
+        ? { blob: recording.blob, mimeType: recording.mimeType, durationMs: recording.durationMs }
+        : null,
     })
-    if (!result.ok) {
-      setError(result.reason)
-      return
-    }
-    setSaving(true)
-    try {
-      const trimmed = text.trim()
-      const save = await addSave({
-        text: trimmed || null,
-        photos: photos.map(({ photo }) => ({ blob: photo.blob, thumbBlob: photo.thumbBlob, mimeType: photo.mimeType })),
-        audio: recording
-          ? { blob: recording.blob, mimeType: recording.mimeType, durationMs: recording.durationMs }
-          : null,
-      })
-      const number = computeSaveNumbers(await getAllSaves()).get(save.id)
-      setText('')
-      toast(`已存档 · 存档点 #${number}`)
-      navigate('/timeline')
-    } finally {
-      setSaving(false)
-    }
+    const number = computeSaveNumbers(await getAllSaves()).get(save.id)
+    toast(`已存档 · 存档点 #${number}`)
+    navigate('/timeline')
   }
 
   return (
     <>
       <h1 className="text-2xl font-semibold">存档</h1>
-      <textarea
-        value={text}
-        onChange={(e) => {
-          setText(limitText(e.target.value))
-          setError(null)
-        }}
-        placeholder="此刻，你在想什么？"
-        rows={5}
-        className="mt-6 w-full resize-none rounded-lg border border-black/20 bg-transparent p-3 text-base outline-none focus:border-black dark:border-white/30 dark:focus:border-white"
+      <SaveForm
+        submitLabel="保存此刻"
+        // 吸在底部导航上方：内容再多也不用滚动就能点到
+        footerClassName="sticky bottom-[calc(env(safe-area-inset-bottom)+2.75rem)]"
+        onSubmit={handleSave}
       />
-      <p className="mt-1 text-right text-xs opacity-50">
-        {textLength(text)} / {MAX_TEXT_LENGTH}
-      </p>
-      <PhotoPicker
-        photos={photos}
-        onChange={(next) => {
-          setPhotos(next)
-          setError(null)
-        }}
-        onError={setError}
-      />
-      <AudioRecorder
-        recording={recording}
-        onChange={(next) => {
-          setRecording(next)
-          setError(null)
-        }}
-        onError={setError}
-      />
-      {error && <p className="mt-2 text-sm">{error}</p>}
-      {/* 吸在底部导航上方：内容再多也不用滚动就能点到 */}
-      <div className="sticky bottom-[calc(env(safe-area-inset-bottom)+2.75rem)] -mx-4 mt-2 bg-white px-4 py-2 dark:bg-black">
-        <button
-          type="button"
-          onClick={handleSave}
-          disabled={saving}
-          className="w-full rounded-lg bg-black py-3 text-base font-semibold text-white disabled:opacity-50 dark:bg-white dark:text-black"
-        >
-          保存此刻
-        </button>
-      </div>
     </>
   )
 }

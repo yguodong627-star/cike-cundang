@@ -1,6 +1,7 @@
 import { useRef, useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import PhotoViewer from './PhotoViewer.tsx'
+import EditSheet from './EditSheet.tsx'
 import { useNearViewport } from './useNearViewport.ts'
 import { db } from '../db/db.ts'
 import { deleteSave } from '../db/saves.ts'
@@ -33,6 +34,7 @@ interface Props {
 
 export default function SaveCard({ save, number, now }: Props) {
   const [viewerIndex, setViewerIndex] = useState<number | null>(null)
+  const [editing, setEditing] = useState(false)
   const ref = useRef<HTMLElement>(null)
   // 离屏幕远的卡片不读照片和语音，避免存档多了以后手机内存吃紧（技术文档坑 10）
   const active = useNearViewport(ref) || viewerIndex !== null
@@ -75,11 +77,17 @@ export default function SaveCard({ save, number, now }: Props) {
         {locked ? (
           <span className="opacity-40">存档已封存</span>
         ) : (
-          <button type="button" onClick={handleDiscard} className="opacity-60">
-            放弃这个存档
-          </button>
+          <div className="flex gap-4">
+            <button type="button" onClick={handleDiscard} className="opacity-60">
+              放弃这个存档
+            </button>
+            <button type="button" onClick={() => setEditing(true)} className="font-semibold">
+              编辑存档
+            </button>
+          </div>
         )}
       </footer>
+      {editing && <EditSheet save={save} number={number} onClose={() => setEditing(false)} />}
       {viewerIndex !== null && (
         <PhotoViewer photos={photos} startIndex={viewerIndex} onClose={() => setViewerIndex(null)} />
       )}
