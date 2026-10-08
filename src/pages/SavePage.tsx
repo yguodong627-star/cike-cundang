@@ -3,6 +3,7 @@ import { addSave, getAllSaves } from '../db/saves.ts'
 import { computeSaveNumbers } from '../rules/numbering.ts'
 import { useToast } from '../components/Toast.tsx'
 import { useBackupReminder } from '../components/BackupReminder.tsx'
+import SafariTabHint from '../components/SafariTabHint.tsx'
 import SaveForm, { revokeFormUrls, type SaveFormValue } from '../components/SaveForm.tsx'
 
 // 没存的草稿：切到别的页面再回来还在；App 被关掉后就没了
@@ -35,6 +36,7 @@ export default function SavePage() {
   return (
     <>
       <h1 className="text-2xl font-semibold">存档</h1>
+      <SafariTabHint />
       <SaveForm
         initial={draft ?? undefined}
         submitLabel="保存此刻"

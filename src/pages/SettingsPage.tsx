@@ -4,6 +4,7 @@ import { db } from '../db/db.ts'
 import { toLocalDateKey } from '../rules/date.ts'
 import { isPersisted } from '../db/persist.ts'
 import ImportBackup from '../components/ImportBackup.tsx'
+import SafariTabHint from '../components/SafariTabHint.tsx'
 import { BackupPending, useBackupExport } from '../components/useBackupExport.tsx'
 
 // 用动态引入，部署版构建时整段被丢掉，不会打包进去
@@ -22,6 +23,7 @@ export default function SettingsPage() {
   return (
     <>
       <h1 className="text-2xl font-semibold">设置</h1>
+      <SafariTabHint />
       <section className="mt-6">
         <button
           type="button"
@@ -41,6 +43,7 @@ export default function SettingsPage() {
       <p className="mt-8 text-sm">
         持久保存：{persisted === null ? '检查中…' : persisted ? '已开启' : '未开启'}
       </p>
+      <p className="mt-2 text-xs opacity-50">存档只保存在这台手机上。删除主屏幕图标会把存档一起删掉，删除前先备份。</p>
       {DevTools && (
         <Suspense fallback={null}>
           <DevTools />
