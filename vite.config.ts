@@ -7,6 +7,7 @@ export default defineConfig({
   plugins: [react(), tailwindcss()],
   test: {
     environment: 'node',
+    env: { TZ: 'Asia/Shanghai' },
     setupFiles: ['./src/test/setup.ts'],
   },
 })
