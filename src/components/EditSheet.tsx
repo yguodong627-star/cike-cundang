@@ -1,6 +1,6 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { getMediaOfSave, updateSave } from '../db/saves.ts'
-import { buildSaveChanges } from '../rules/edit.ts'
+import { buildSaveChanges, isEditChanged, type EditSnapshot } from '../rules/edit.ts'
 import { isLocked } from '../rules/lock.ts'
 import type { Save } from '../types/models.ts'
 import SaveForm, { type SaveFormValue } from './SaveForm.tsx'
@@ -34,8 +34,23 @@ async function loadInitial(save: Save): Promise<SaveFormValue> {
   }
 }
 
+function snapshot(value: SaveFormValue): EditSnapshot {
+  return {
+    text: value.text,
+    photoKeys: value.photos.map((p) => p.key),
+    audioKey: value.recording ? (value.recording.mediaId ?? value.recording.url) : null,
+  }
+}
+
 export default function EditSheet({ save, number, onClose }: Props) {
   const [initial, setInitial] = useState<SaveFormValue | null>(null)
+  const current = useRef<SaveFormValue | null>(null)
+
+  function handleCancel() {
+    const changed = initial && current.current && isEditChanged(snapshot(initial), snapshot(current.current))
+    if (changed && !window.confirm('放弃这次编辑？改动不会保存。')) return
+    onClose()
+  }
 
   useEffect(() => {
     let cancelled = false
@@ -87,7 +102,7 @@ export default function EditSheet({ save, number, onClose }: Props) {
     >
       <header className="flex items-center justify-between">
         <h2 className="text-xl font-semibold">编辑存档点 #{number}</h2>
-        <button type="button" onClick={onClose} className="px-2 py-1 text-sm opacity-60">
+        <button type="button" onClick={handleCancel} className="px-2 py-1 text-sm opacity-60">
           取消
         </button>
       </header>
@@ -97,6 +112,9 @@ export default function EditSheet({ save, number, onClose }: Props) {
           submitLabel="保存"
           footerClassName="sticky bottom-0 pb-[calc(env(safe-area-inset-bottom)+0.5rem)]"
           onSubmit={handleSubmit}
+          onDraftChange={(value) => {
+            current.current = value
+          }}
         />
       )}
     </div>

@@ -49,7 +49,11 @@ export default function SaveCard({ save, number, now }: Props) {
   async function handleDiscard() {
     if (!window.confirm(`放弃存档点 #${number}？\n放弃后无法恢复，后面的存档编号会往前补位。`)) return
     if (isLocked(save.createdAt, Date.now())) return
-    await deleteSave(save.id)
+    try {
+      await deleteSave(save.id)
+    } catch {
+      window.alert('放弃失败，请再试一次')
+    }
   }
 
   return (

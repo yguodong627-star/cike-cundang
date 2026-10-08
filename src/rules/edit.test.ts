@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { buildSaveChanges, type EditDraft } from './edit.ts'
+import { buildSaveChanges, isEditChanged, type EditDraft } from './edit.ts'
 
 const photo = { blob: new Blob(['p']), thumbBlob: new Blob(['t']), mimeType: 'image/jpeg' }
 const audio = { blob: new Blob(['a']), mimeType: 'audio/mp4', durationMs: 1000 }
@@ -50,5 +50,22 @@ describe('buildSaveChanges', () => {
   it('leaves audio alone when there was none and none added', () => {
     const c = buildSaveChanges({ photoIds: [], audioId: null }, draft({ keptPhotoIds: [], keptAudioId: null }))
     expect(c.audio).toBeUndefined()
+  })
+})
+
+describe('编辑内容有没有变化', () => {
+  const before = { text: '原文', photoKeys: ['p1', 'p2'], audioKey: 'a1' }
+
+  it('什么都没动：没有变化', () => {
+    expect(isEditChanged(before, { ...before, photoKeys: ['p1', 'p2'] })).toBe(false)
+  })
+
+  it('改了文字、去掉或加了照片、换了照片顺序、去掉或换了语音：都算变化', () => {
+    expect(isEditChanged(before, { ...before, text: '新文' })).toBe(true)
+    expect(isEditChanged(before, { ...before, photoKeys: ['p1'] })).toBe(true)
+    expect(isEditChanged(before, { ...before, photoKeys: ['p1', 'p2', 'n1'] })).toBe(true)
+    expect(isEditChanged(before, { ...before, photoKeys: ['p2', 'p1'] })).toBe(true)
+    expect(isEditChanged(before, { ...before, audioKey: null })).toBe(true)
+    expect(isEditChanged(before, { ...before, audioKey: 'blob:new' })).toBe(true)
   })
 })

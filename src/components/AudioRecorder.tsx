@@ -15,9 +15,11 @@ interface Props {
   recording: Recording | null
   onChange: (recording: Recording | null) => void
   onError: (message: string) => void
+  /** 开始 / 结束录音时通知，录音中不能保存 */
+  onBusyChange?: (busy: boolean) => void
 }
 
-export default function AudioRecorder({ recording, onChange, onError }: Props) {
+export default function AudioRecorder({ recording, onChange, onError, onBusyChange }: Props) {
   const [recordingNow, setRecordingNow] = useState(false)
   const [elapsedMs, setElapsedMs] = useState(0)
   const recorderRef = useRef<MediaRecorder | null>(null)
@@ -38,15 +40,13 @@ export default function AudioRecorder({ recording, onChange, onError }: Props) {
     streamRef.current = null
   }
 
+  // 录音中离开页面：停止录音，录好的部分照常交给 onChange（存档页会放进草稿）
   useEffect(
     () => () => {
+      clearTimers()
       const recorder = recorderRef.current
-      if (recorder && recorder.state !== 'inactive') {
-        recorder.ondataavailable = null
-        recorder.onstop = null
-        recorder.stop()
-      }
-      cleanup()
+      if (recorder && recorder.state !== 'inactive') recorder.stop()
+      else cleanup()
     },
     [],
   )
@@ -78,10 +78,20 @@ export default function AudioRecorder({ recording, onChange, onError }: Props) {
       cleanup()
       recorderRef.current = null
       setRecordingNow(false)
+      onBusyChange?.(false)
       const type = recorder.mimeType || mimeType || 'audio/mp4'
       const blob = new Blob(chunks, { type })
       if (recording) URL.revokeObjectURL(recording.url)
       onChange({ blob, mimeType: type, durationMs, url: URL.createObjectURL(blob) })
+    }
+
+    recorder.onerror = () => {
+      recorder.onstop = null
+      cleanup()
+      recorderRef.current = null
+      setRecordingNow(false)
+      onBusyChange?.(false)
+      onError('录音中断，请重新录音')
     }
 
     streamRef.current = stream
@@ -89,6 +99,7 @@ export default function AudioRecorder({ recording, onChange, onError }: Props) {
     recorder.start()
     setElapsedMs(0)
     setRecordingNow(true)
+    onBusyChange?.(true)
     timerRef.current = window.setInterval(() => {
       setElapsedMs(Math.min(performance.now() - startedAt, MAX_AUDIO_MS))
     }, 200)

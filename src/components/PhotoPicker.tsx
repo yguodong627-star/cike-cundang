@@ -15,9 +15,11 @@ interface Props {
   photos: PickedPhoto[]
   onChange: (photos: PickedPhoto[]) => void
   onError: (message: string) => void
+  /** 开始 / 结束处理照片时通知，处理中不能保存 */
+  onBusyChange?: (busy: boolean) => void
 }
 
-export default function PhotoPicker({ photos, onChange, onError }: Props) {
+export default function PhotoPicker({ photos, onChange, onError, onBusyChange }: Props) {
   const inputRef = useRef<HTMLInputElement>(null)
   const [processing, setProcessing] = useState(false)
   const full = photos.length >= MAX_PHOTOS
@@ -28,20 +30,25 @@ export default function PhotoPicker({ photos, onChange, onError }: Props) {
     const chosen = [...files].slice(0, room)
 
     setProcessing(true)
-    try {
-      const added: PickedPhoto[] = []
-      for (const file of chosen) {
+    onBusyChange?.(true)
+    const added: PickedPhoto[] = []
+    let failed = 0
+    for (const file of chosen) {
+      try {
         const photo = await compressImage(file)
         added.push({ key: crypto.randomUUID(), photo, url: URL.createObjectURL(photo.thumbBlob) })
+      } catch {
+        failed++
       }
-      onChange([...photos, ...added])
-      if (files.length > room) onError(`照片最多 ${MAX_PHOTOS} 张`)
-    } catch {
-      onError('有照片无法读取，请换一张试试')
-    } finally {
-      setProcessing(false)
-      if (inputRef.current) inputRef.current.value = ''
     }
+    if (added.length > 0) onChange([...photos, ...added])
+    const problems: string[] = []
+    if (failed > 0) problems.push(added.length > 0 ? `有 ${failed} 张照片无法读取，其余已添加` : '有照片无法读取，请换一张试试')
+    if (files.length > room) problems.push(`照片最多 ${MAX_PHOTOS} 张`)
+    if (problems.length > 0) onError(problems.join('；'))
+    setProcessing(false)
+    onBusyChange?.(false)
+    if (inputRef.current) inputRef.current.value = ''
   }
 
   function remove(key: string) {
