@@ -6,6 +6,12 @@
   background-color: #fff;
 }
 
+/* iPhone 主屏幕模式下，页面被下拉回弹卡住后会收不到点击 */
+html,
+body {
+  overscroll-behavior: none;
+}
+
 /* 浏览器默认的焦点框是蓝色，改成跟随文字颜色，保持全站黑白 */
 :focus-visible {
   outline-color: currentColor;
