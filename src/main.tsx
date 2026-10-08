@@ -4,9 +4,7 @@ import './index.css'
 import App from './App.tsx'
 import { db } from './db/db.ts'
 import { requestPersist } from './db/persist.ts'
-import { installDiagLog } from './dev/errorLog.ts'
 
-installDiagLog()
 db.open()
 requestPersist()
 

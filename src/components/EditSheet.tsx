@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react'
 import { getMediaOfSave, updateSave } from '../db/saves.ts'
 import { buildSaveChanges } from '../rules/edit.ts'
 import { isLocked } from '../rules/lock.ts'
-import { storedBlobUrl } from '../media/useObjectUrl.ts'
 import type { Save } from '../types/models.ts'
 import SaveForm, { type SaveFormValue } from './SaveForm.tsx'
 
@@ -15,11 +14,10 @@ interface Props {
 async function loadInitial(save: Save): Promise<SaveFormValue> {
   const media = await getMediaOfSave(save)
   const byId = new Map(media.map((m) => [m.id, m]))
-  const photos = []
-  for (const id of save.photoIds) {
+  const photos = save.photoIds.flatMap((id) => {
     const m = byId.get(id)
-    if (m) photos.push({ key: id, mediaId: id, url: await storedBlobUrl(m.thumbBlob ?? m.blob) })
-  }
+    return m ? [{ key: id, mediaId: id, url: URL.createObjectURL(m.thumbBlob ?? m.blob) }] : []
+  })
   const audio = save.audioId ? byId.get(save.audioId) : undefined
   return {
     text: save.text ?? '',
@@ -29,7 +27,7 @@ async function loadInitial(save: Save): Promise<SaveFormValue> {
           blob: audio.blob,
           mimeType: audio.mimeType,
           durationMs: audio.durationMs ?? 0,
-          url: await storedBlobUrl(audio.blob),
+          url: URL.createObjectURL(audio.blob),
           mediaId: audio.id,
         }
       : null,
