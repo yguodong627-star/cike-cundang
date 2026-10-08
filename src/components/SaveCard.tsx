@@ -1,10 +1,11 @@
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import PhotoViewer from './PhotoViewer.tsx'
 import EditSheet from './EditSheet.tsx'
 import { useNearViewport } from './useNearViewport.ts'
 import { deleteSave, getMediaOfSave } from '../db/saves.ts'
 import { isLocked } from '../rules/lock.ts'
+import { EDIT_WINDOW_MS } from '../rules/constants.ts'
 import { useObjectUrl } from '../media/useObjectUrl.ts'
 import { formatTime } from '../rules/timeline.ts'
 import type { Media, Save } from '../types/models.ts'
@@ -31,6 +32,18 @@ interface Props {
   now: number
 }
 
+/** 满 6 小时那一刻就切换成“存档已封存”，不等每分钟一次的刷新 */
+function useLocked(createdAt: number, now: number): boolean {
+  const [passed, setPassed] = useState(false)
+  useEffect(() => {
+    const ms = createdAt + EDIT_WINDOW_MS - Date.now()
+    if (ms <= 0) return
+    const timer = window.setTimeout(() => setPassed(true), ms)
+    return () => window.clearTimeout(timer)
+  }, [createdAt])
+  return passed || isLocked(createdAt, now)
+}
+
 export default function SaveCard({ save, number, now }: Props) {
   const [viewerIndex, setViewerIndex] = useState<number | null>(null)
   const [editing, setEditing] = useState(false)
@@ -44,7 +57,7 @@ export default function SaveCard({ save, number, now }: Props) {
   const byId = new Map((media ?? []).map((m) => [m.id, m]))
   const photos = save.photoIds.map((id) => byId.get(id)).filter((m): m is Media => !!m)
   const audio = save.audioId ? byId.get(save.audioId) : undefined
-  const locked = isLocked(save.createdAt, now)
+  const locked = useLocked(save.createdAt, now)
 
   async function handleDiscard() {
     if (!window.confirm(`放弃存档点 #${number}？\n放弃后无法恢复，后面的存档编号会往前补位。`)) return

@@ -20,4 +20,9 @@ describe('锁定判断', () => {
   it('刚保存 → 未锁定', () => {
     expect(isLocked(saved, saved)).toBe(false)
   })
+
+  it('手机时间被调到存档时间之前（早 1 秒、早 7 小时）→ 已锁定', () => {
+    expect(isLocked(saved, saved - 1000)).toBe(true)
+    expect(isLocked(saved, after(-7, 0, 0))).toBe(true)
+  })
 })
