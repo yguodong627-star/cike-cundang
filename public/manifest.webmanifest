@@ -1,0 +1,8 @@
+{
+  "name": "此刻存档",
+  "short_name": "此刻存档",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#ffffff"
+}
