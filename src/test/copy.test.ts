@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest'
 // 需求文档 5.5：界面上不用通用说法，统一用“存档”系列文案
 const FORBIDDEN = ['保存成功', '撤回', '修改', '导出', '导入']
 
-const sources = import.meta.glob<string>(['../**/*.tsx', '!../dev/**'], {
+const sources = import.meta.glob<string>(['../**/*.tsx', '../backup/html.ts', '!../dev/**'], {
   query: '?raw',
   import: 'default',
   eager: true,
